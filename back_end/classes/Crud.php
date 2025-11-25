@@ -59,12 +59,21 @@ class Crud
             );
     }
 
-    public function update(int $id) :array {
+    public function update(int $id, array $atributos) :array {
         return [];
     }
 
     public function delete(int $id) :array {
-        return [];
+
+        try {
+            $sql = "delete from $this->tabela where id = $id";
+            $sql = DB::prepare($sql);
+            $sql->execute();
+
+            return $this->retorno('success', "$this->tabela excluído com sucesso!");
+        } catch (PDOException $e) {
+            return $this->retorno('error', "Não foi possível excluir o $this->tabela");
+        }
     }
 
     public function getDados(int $id) :string {

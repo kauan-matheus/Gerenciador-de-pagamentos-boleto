@@ -33,7 +33,7 @@ class Usuario extends Crud
         }
     }
 
-    public function logout() {
+    public function logout(): array {
         try{
             session_start();
             session_destroy();
@@ -87,6 +87,18 @@ class Usuario extends Crud
             }
         } catch (PDOException $e) {
             return $this->retorno('error', $e);
+        }
+    }
+
+    public function update(int $id, array $atributos): array {
+        try {
+            $sql = "update usuario set login = '$atributos[0]', tipo = '$atributos[1]', cpf = '$atributos[2]', nome = '$atributos[3]', contato = '$atributos[4]' where id = $id";
+            $sql = DB::prepare($sql);
+            $sql->execute();
+
+            return $this->retorno('success', "$this->tabela atualizado com sucesso");
+        } catch (PDOException $e) {
+            return $this->retorno('error', "Não foi possível atualizar o $this->tabela");
         }
     }
 }
