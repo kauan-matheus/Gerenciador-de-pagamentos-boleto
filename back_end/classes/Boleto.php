@@ -5,7 +5,7 @@ require_once 'Crud.php';
 class Boleto extends Crud {
     public function update(int $id, array $atributos): array {
         try {
-            $sql = "update usuario set codigo = '$atributos[0]', emissao = '$atributos[1]', vencimento = '$atributos[2]', valor = '$atributos[3]', `status` = '$atributos[4]', cliente_id = $atributos[5], servico_id = $atributos[6] where id = $id";
+            $sql = "update boleto set codigo = '{$atributos['codigo']}', emissao = '{$atributos['emissao']}', vencimento = '{$atributos['vencimento']}', valor = {$atributos['valor']}, `status` = {$atributos['status']}, cliente_id = {$atributos['cliente_id']}, servico_id = {$atributos['servico_id']} where id = $id";
             $sql = DB::prepare($sql);
             $sql->execute();
 

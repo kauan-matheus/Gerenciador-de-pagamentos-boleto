@@ -92,7 +92,7 @@ class Usuario extends Crud
 
     public function update(int $id, array $atributos): array {
         try {
-            $sql = "update usuario set login = '$atributos[0]', tipo = '$atributos[1]', cpf = '$atributos[2]', nome = '$atributos[3]', contato = '$atributos[4]' where id = $id";
+            $sql = "update usuario set login = '{$atributos['login']}', tipo = '{$atributos['tipo']}', cpf = '{$atributos['cpf']}', nome = '{$atributos['nome']}', contato = '{$atributos['contato']}' where id = $id";
             $sql = DB::prepare($sql);
             $sql->execute();
 

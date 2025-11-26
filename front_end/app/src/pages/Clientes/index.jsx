@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useReducer } from "react";
 import Modal from "../../components/Modal";
 import axios from "axios";
-import { get, getDados, post } from "../../controller";
+import { get, getDados, post, dele, put } from "../../controller";
 import { useOutletContext} from "react-router-dom";
 import md5 from "md5";
 
@@ -72,6 +72,8 @@ export default function ClientePage() {
     const form = event.target;
     const formData = new FormData(form);
 
+    var response;
+
     const cliente = {
       cnpj: formData.get("cnpj"),
       nome: formData.get("nome"),
@@ -80,7 +82,11 @@ export default function ClientePage() {
       modificador: logadoID,
     };
 
-    const response = await post("cliente", cliente);
+    if (selected){
+      response = await put("cliente", cliente, selected.id);
+    }else{
+      response = await post("cliente", cliente);
+    }
 
     if (response.data.type == "success") {
       setMessage(response.data.message);
@@ -94,6 +100,22 @@ export default function ClientePage() {
     form.reset();
   };
 
+  const deleteForm = async (event) => {
+    if (selected){
+      const response = await dele("cliente", selected.id);
+      if (response.data.type == "success") {
+        setMessage(response.data.message);
+        setOpenModal(false);
+        fetchData(); 
+      } else {
+        setMessage(response.data.message);
+      }
+
+    }else{
+      setMessage("É necessario selecionar um cliente para ser apagado");
+    }
+  };
+
   const selecionarLinha = async (cliente) => {
     const response = await getDados("cliente", cliente.id);
     if (response.data) {
@@ -102,7 +124,7 @@ export default function ClientePage() {
     }
   };
 
-  // atualiza a tabela clientes se a pesquisa for alterada
+  // atualiza a tabela usuarios se a pesquisa for alterada
   useEffect(() => {
     var timeout = setTimeout(() => {
       fetchData();
@@ -111,17 +133,7 @@ export default function ClientePage() {
     return () => {
       clearTimeout(timeout);
     };
-  }, [search]);
-
-  // atualiza a tabela clientes de 5 em 5 segundos
-  useEffect(() => {
-    fetchData();
-    const intervalo = setInterval(() => {
-      fetchData();
-    }, 5000);
-  
-    return () => clearInterval(intervalo); 
-  }, []);
+  }, [search, selected]);
 
   useEffect(() => {
     if (selected) {
@@ -136,7 +148,7 @@ export default function ClientePage() {
   return (
     <div className="main">
       <header className="pagamento-header">
-        <h1>Gerenciamento de Usuários</h1>
+        <h1>Gerenciamento de Clientes</h1>
         <p>Visualize, edite e adicione Usuários de forma simples e rápida.</p>
       </header>
       <div className="form">
@@ -280,9 +292,7 @@ export default function ClientePage() {
             <button type="submit" className="btn-secondary">
               <i className="fa-solid fa-pen-to-square"></i>
             </button>
-            <button type="button" className="btn-danger">
-              <i className="fa-solid fa-trash"></i>
-            </button>
+            <BotaoExcluir onDelete={() => deleteForm()}/>
             <button
               type="reset"
               className="btn-close"
@@ -296,6 +306,29 @@ export default function ClientePage() {
         </form>
       </Modal>
     </div>
+  );
+}
+
+function BotaoExcluir({ onDelete }) {
+  const [confirmando, setConfirmando] = useState(false);
+  const {message, setMessage} = useOutletContext();
+
+  function handleClick() {
+      if (!confirmando) {
+          setConfirmando(true);
+          setMessage("Tem certeza que deseja apagar esse cliente?");
+
+          // volta ao estado normal depois de 3 segundos
+          setTimeout(() => setConfirmando(false), 5000);
+      } else {
+          onDelete(); // aqui apaga de verdade
+      }
+  }
+
+  return (
+      <button type="button" className="btn-danger" onClick={handleClick}>
+        <i className="fa-solid fa-trash"></i>
+      </button>
   );
 }
 

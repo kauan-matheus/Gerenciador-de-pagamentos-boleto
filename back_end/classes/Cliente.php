@@ -5,7 +5,7 @@ require_once 'Crud.php';
 class Cliente extends Crud {
     public function update(int $id, array $atributos): array {
         try {
-            $sql = "update usuario set cnpj = '$atributos[0]', nome = '$atributos[1]', email = '$atributos[2]', contato = '$atributos[3]' where id = $id";
+            $sql = "update cliente set cnpj = '{$atributos['cnpj']}', nome = '{$atributos['nome']}', email = '{$atributos['email']}', contato = '{$atributos['contato']}' where id = $id";
             $sql = DB::prepare($sql);
             $sql->execute();
 

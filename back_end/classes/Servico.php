@@ -5,7 +5,7 @@ require_once 'Crud.php';
 class Servico extends Crud {
     public function update(int $id, array $atributos): array {
         try {
-            $sql = "update usuario set nome = '$atributos[0]', descricao = '$atributos[1]', preco = '$atributos[2]' where id = $id";
+            $sql = "update servico set nome = '{$atributos['nome']}', descricao = '{$atributos['descricao']}', preco = '{$atributos['preco']}' where id = $id";
             $sql = DB::prepare($sql);
             $sql->execute();
 

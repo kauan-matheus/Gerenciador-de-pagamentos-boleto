@@ -1,14 +1,15 @@
 import { useState, useMemo, useEffect } from "react";
 import Modal from "../../components/Modal";
 import axios from "axios";
-import { get, getDados, post } from "../../controller";
-import { useOutletContext} from "react-router-dom";
+import { get, getDados, post, dele, put } from "../../controller";
+import { useNavigate, useOutletContext} from "react-router-dom";
 import md5 from "md5";
 
 const tamPagina = 6;
 
 export default function ServicoPage() {
-  const {logado, setLogado, logadoID, setLogadoID, message, setMessage} = useOutletContext();
+  const {logado, setLogado, userType, setUserType, logadoID, setLogadoID, message, setMessage} = useOutletContext();
+  const navigate = useNavigate();
 
   const [servicos, setServicos] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -25,10 +26,17 @@ export default function ServicoPage() {
     }
   }
 
+  const checarTipo = () => {
+    if (userType != 0){
+      setMessage("É necessario ser um adm para acessar essa pagina");
+      navigate("/");
+    }
+  }
+
   //🔍 Filtragem por busca
   const servicosFiltrados = useMemo(() => {
     return servicos.filter(
-      (s) => s.nome.includes(search)
+      (s) => s.nome.includes(search) || s.preco.toString().includes(search)
     );
   }, [search, servicos]);
 
@@ -45,6 +53,8 @@ export default function ServicoPage() {
     const form = event.target;
     const formData = new FormData(form);
 
+    var response;
+
     const servico = {
       nome: formData.get("nome"),
       descricao: formData.get("descricao"),
@@ -52,7 +62,11 @@ export default function ServicoPage() {
       modificador: logadoID,
     };
 
-    const response = await post("servico", servico);
+    if (selected){
+      response = await put("servico", servico, selected.id);
+    }else{
+      response = await post("servico", servico);
+    }
 
     if (response.data.type == "success") {
       setMessage(response.data.message);
@@ -66,6 +80,22 @@ export default function ServicoPage() {
     form.reset();
   };
 
+  const deleteForm = async (event) => {
+    if (selected){
+      const response = await dele("servico", selected.id);
+      if (response.data.type == "success") {
+        setMessage(response.data.message);
+        setOpenModal(false);
+        fetchData(); 
+      } else {
+        setMessage(response.data.message);
+      }
+
+    }else{
+      setMessage("É necessario selecionar um servico para ser apagado");
+    }
+  };
+
   const selecionarLinha = async (servico) => {
     const response = await getDados("servico", servico.id);
     if (response.data) {
@@ -74,7 +104,7 @@ export default function ServicoPage() {
     }
   };
 
-  // atualiza a tabela servicos se a pesquisa for alterada
+  // atualiza a tabela usuarios se a pesquisa for alterada
   useEffect(() => {
     var timeout = setTimeout(() => {
       fetchData();
@@ -83,29 +113,27 @@ export default function ServicoPage() {
     return () => {
       clearTimeout(timeout);
     };
-  }, [search]);
+  }, [search, selected]);
 
-  // atualiza a tabela servicos de 5 em 5 segundos
   useEffect(() => {
-    fetchData();
-    const intervalo = setInterval(() => {
-      fetchData();
-    }, 5000);
-  
-    return () => clearInterval(intervalo); 
+    checarTipo();
   }, []);
+
+  useEffect(() => {
+    checarTipo();
+  }, [logado]);
 
   return (
     <div className="main">
       <header className="pagamento-header">
-        <h1>Gerenciamento de Usuários</h1>
+        <h1>Gerenciamento de Servicos</h1>
         <p>Visualize, edite e adicione Usuários de forma simples e rápida.</p>
       </header>
       <div className="form">
         <input
           type="text"
           className="search"
-          placeholder="Buscar por Nome...."
+          placeholder="Buscar por Nome ou Preço...."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -197,7 +225,7 @@ export default function ServicoPage() {
           </div>
           <div className="input-group">
             <label>Descrição:</label>
-            <textarea defaultValue={selected?.descricao} required name="descricao"></textarea>
+            <textarea defaultValue={selected?.descricao} rows="3" cols="85" required name="descricao"></textarea>
           </div>
           <div className="input-group">
             <label>Preço</label>
@@ -209,9 +237,7 @@ export default function ServicoPage() {
             <button type="submit" className="btn-secondary">
               <i className="fa-solid fa-pen-to-square"></i>
             </button>
-            <button type="button" className="btn-danger">
-              <i className="fa-solid fa-trash"></i>
-            </button>
+            <BotaoExcluir onDelete={() => deleteForm()}/>
             <button
               type="reset"
               className="btn-close"
@@ -226,6 +252,29 @@ export default function ServicoPage() {
       </Modal>
     </div>
   );
+}
+
+function BotaoExcluir({ onDelete }) {
+    const [confirmando, setConfirmando] = useState(false);
+    const {message, setMessage} = useOutletContext();
+
+    function handleClick() {
+        if (!confirmando) {
+            setConfirmando(true);
+            setMessage("Tem certeza que deseja apagar esse servico?");
+
+            // volta ao estado normal depois de 3 segundos
+            setTimeout(() => setConfirmando(false), 5000);
+        } else {
+            onDelete(); // aqui apaga de verdade
+        }
+    }
+
+    return (
+        <button type="button" className="btn-danger" onClick={handleClick}>
+          <i className="fa-solid fa-trash"></i>
+        </button>
+    );
 }
 
 function LinhaServico({ servico, onClick }) {

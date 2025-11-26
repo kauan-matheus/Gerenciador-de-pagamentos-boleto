@@ -1,14 +1,15 @@
 import { useState, useMemo, useEffect, useReducer } from "react";
 import Modal from "../../components/Modal";
 import axios from "axios";
-import { get, getDados, post } from "../../controller";
-import { useOutletContext} from "react-router-dom";
+import { get, getDados, post, dele, put } from "../../controller";
+import { useNavigate, useOutletContext} from "react-router-dom";
 import md5 from "md5";
 
 const tamPagina = 6;
 
 export default function UsuarioPage() {
-  const {logado, setLogado, message, setMessage} = useOutletContext();
+  const {logado, setLogado, userType, setUserType, message, setMessage} = useOutletContext();
+  const navigate = useNavigate();
 
   const [usuarios, setUsuarios] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -16,6 +17,13 @@ export default function UsuarioPage() {
   const [search, setSearch] = useState("");
   const [openModal, setOpenModal] = useState(false);
   const [paginaAtual, setPaginaAtual] = useState(1);
+
+  const checarTipo = () => {
+    if (userType != 0){
+      setMessage("É necessario ser um adm para acessar essa pagina");
+      navigate("/");
+    }
+  }
 
   const [cpf, setCpf] = useReducer(
     (oldValue, newValue) => {
@@ -70,7 +78,9 @@ export default function UsuarioPage() {
 
     const form = event.target;
     const formData = new FormData(form);
-    const senha = md5(formData.get("senha"))
+    const senha = md5(formData.get("senha"));
+
+    var response;
 
     const usuario = {
       login: formData.get("login"),
@@ -81,7 +91,11 @@ export default function UsuarioPage() {
       contato: formData.get("contato"),
     };
 
-    const response = await post("usuario", usuario);
+    if (selected){
+      response = await put("usuario", usuario, selected.id);
+    }else{
+      response = await post("usuario", usuario);
+    }
 
     if (response.data.type == "success") {
       setMessage(response.data.message);
@@ -93,6 +107,22 @@ export default function UsuarioPage() {
     }
 
     form.reset();
+  };
+
+  const deleteForm = async (event) => {
+    if (selected){
+      const response = await dele("usuario", selected.id);
+      if (response.data.type == "success") {
+        setMessage(response.data.message);
+        setOpenModal(false);
+        fetchData(); 
+      } else {
+        setMessage(response.data.message);
+      }
+
+    }else{
+      setMessage("É necessario selecionar um usuario para ser apagado");
+    }
   };
 
   const selecionarLinha = async (usuario) => {
@@ -112,17 +142,7 @@ export default function UsuarioPage() {
     return () => {
       clearTimeout(timeout);
     };
-  }, [search]);
-
-  // atualiza a tabela usuarios de 5 em 5 segundos
-  useEffect(() => {
-    fetchData();
-    const intervalo = setInterval(() => {
-      fetchData();
-    }, 5000);
-  
-    return () => clearInterval(intervalo); 
-  }, []);
+  }, [search, selected]);
 
   useEffect(() => {
     if (selected) {
@@ -131,7 +151,15 @@ export default function UsuarioPage() {
     } else {
         setContato("");
     }
-  }, [selected])
+  }, [selected]);
+
+  useEffect(() => {
+    checarTipo();
+  }, []);
+
+  useEffect(() => {
+    checarTipo();
+  }, [logado]);
 
   return (
     <div className="main">
@@ -296,9 +324,7 @@ export default function UsuarioPage() {
             <button type="submit" className="btn-secondary">
               <i className="fa-solid fa-pen-to-square"></i>
             </button>
-            <button type="button" className="btn-danger">
-              <i className="fa-solid fa-trash"></i>
-            </button>
+            <BotaoExcluir onDelete={() => deleteForm()}/>
             <button
               type="reset"
               className="btn-close"
@@ -312,6 +338,29 @@ export default function UsuarioPage() {
         </form>
       </Modal>
     </div>
+  );
+}
+
+function BotaoExcluir({ onDelete }) {
+  const [confirmando, setConfirmando] = useState(false);
+  const {message, setMessage} = useOutletContext();
+
+  function handleClick() {
+      if (!confirmando) {
+          setConfirmando(true);
+          setMessage("Tem certeza que deseja apagar esse usuario?");
+
+          // volta ao estado normal depois de 3 segundos
+          setTimeout(() => setConfirmando(false), 5000);
+      } else {
+          onDelete(); // aqui apaga de verdade
+      }
+  }
+
+  return (
+      <button type="button" className="btn-danger" onClick={handleClick}>
+        <i className="fa-solid fa-trash"></i>
+      </button>
   );
 }
 

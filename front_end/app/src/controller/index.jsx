@@ -31,12 +31,47 @@ export async function getDados(tabela, id) {
   return response;
 }
 
+export async function dele(tabela, id) {
+  const response = await axios.post(
+    "http://localhost:80/Gerenciador-de-pagamentos-boleto/back_end/services/delete.php",
+    {
+      tab: tabela,
+      id: id,
+    },
+    {
+      headers: {
+        "Content-type": "application/json",
+      },
+    }
+  );
+
+  return response;
+}
+
 export async function post(tabela, dados) {
   const response = await axios.post(
     "http://localhost:80/Gerenciador-de-pagamentos-boleto/back_end/services/post.php",
     {
       tab: tabela,
       dados: dados,
+    },
+    {
+      headers: {
+        "Content-type": "application/json",
+      },
+    }
+  );
+
+  return response;
+}
+
+export async function put(tabela, dados, id) {
+  const response = await axios.post(
+    "http://localhost:80/Gerenciador-de-pagamentos-boleto/back_end/services/put.php",
+    {
+      tab: tabela,
+      dados: dados,
+      id: id,
     },
     {
       headers: {

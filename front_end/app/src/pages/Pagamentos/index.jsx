@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import "./index.css";
 import Modal from "../../components/Modal";
 import axios from "axios";
-import { get, getDados, getId, post } from "../../controller";
+import { dele, get, getDados, getId, post, put } from "../../controller";
 import { useOutletContext} from "react-router-dom";
 
 const tamPagina = 6;
@@ -63,6 +63,8 @@ export default function PagamentoPage() {
     const cliente_id = formData.get("cliente");
     const servico_id = formData.get("servico");
 
+    var response;
+
     if (cliente_id == "null" || servico_id == "null") {
       setMessage("Selecione um cliente e um serviço válidos.");
       return;
@@ -79,7 +81,11 @@ export default function PagamentoPage() {
       modificador: logadoID,
     };
 
-    const response = await post("boleto", boleto);
+    if (selected){
+      response = await put("boleto", boleto, selected.id);
+    }else{
+      response = await post("boleto", boleto);
+    }
 
     if (response.data.type == "success") {
       setMessage(response.data.message);
@@ -91,6 +97,22 @@ export default function PagamentoPage() {
     }
 
     form.reset();
+  };
+
+  const deleteForm = async (event) => {
+    if (selected){
+      const response = await dele("boleto", selected.id);
+      if (response.data.type == "success") {
+        setMessage(response.data.message);
+        setOpenModal(false);
+        fetchData(); 
+      } else {
+        setMessage(response.data.message);
+      }
+
+    }else{
+      setMessage("É necessario selecionar um boleto para ser apagado");
+    }
   };
 
   const selecionarLinha = async (divida) => {
@@ -113,7 +135,7 @@ export default function PagamentoPage() {
     }
   }, [selected]);
 
-  // atualiza a tabela boletos se a pesquisa for alterada
+  // atualiza a tabela usuarios se a pesquisa for alterada
   useEffect(() => {
     var timeout = setTimeout(() => {
       fetchData();
@@ -122,17 +144,7 @@ export default function PagamentoPage() {
     return () => {
       clearTimeout(timeout);
     };
-  }, [search]);
-
-  // atualiza a tabela boletos de 5 em 5 segundos
-  useEffect(() => {
-    fetchData();
-    const intervalo = setInterval(() => {
-      fetchData();
-    }, 5000);
-  
-    return () => clearInterval(intervalo); 
-  }, []);
+  }, [search, selected]);
 
   return (
     <div className="main">
@@ -144,7 +156,7 @@ export default function PagamentoPage() {
         <input
           type="text"
           className="search"
-          placeholder="Buscar boleto, CPF ou valor..."
+          placeholder="Buscar boleto ou valor..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -280,13 +292,11 @@ export default function PagamentoPage() {
             <button type="submit" className="btn-secondary">
               <i className="fa-solid fa-pen-to-square"></i>
             </button>
-            <button type="button" className="btn-danger">
-              <i className="fa-solid fa-trash"></i>
-            </button>
+            <BotaoExcluir onDelete={() => deleteForm()}/>
             <button
               type="reset"
               className="btn-close"
-              onClick={() => {setOpenModal(false), setSelected(null)}}
+              onClick={() => {setOpenModal(false); setSelected(null);}}
             >
               <i className="fa-solid fa-xmark"></i>
             </button>
@@ -294,6 +304,29 @@ export default function PagamentoPage() {
         </form>
       </Modal>
     </div>
+  );
+}
+
+function BotaoExcluir({ onDelete }) {
+  const [confirmando, setConfirmando] = useState(false);
+  const {message, setMessage} = useOutletContext();
+
+  function handleClick() {
+      if (!confirmando) {
+          setConfirmando(true);
+          setMessage("Tem certeza que deseja apagar esse boleto?");
+
+          // volta ao estado normal depois de 3 segundos
+          setTimeout(() => setConfirmando(false), 5000);
+      } else {
+          onDelete(); // aqui apaga de verdade
+      }
+  }
+
+  return (
+      <button type="button" className="btn-danger" onClick={handleClick}>
+        <i className="fa-solid fa-trash"></i>
+      </button>
   );
 }
 
